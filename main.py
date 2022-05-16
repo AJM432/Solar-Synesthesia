@@ -7,7 +7,7 @@ import pretty_midi
 import time
 import random
 
-
+# TODO: use interpolation for pitch width and planet radius
  #______________________________
  # must not have overlapping systems
 #  star must be defined as first element in dict
@@ -18,7 +18,8 @@ pygame.init()
 # constants
 # ______________________________
 # WIDTH = HEIGHT = 800
-WIDTH = HEIGHT = 1050
+WIDTH = 1280
+HEIGHT = 740
 FPS = 60 # never change FPS, used in velocity calculation as delta-t
 ZOOM_FACTOR = 1
 ZOOM_CHANGE = 0.025
@@ -51,12 +52,18 @@ PYGAME_ZOOM_IN = 5
 MUSIC_VOLUME = 1
 DEFAULT_PLANET_COLOR = BACKGROUND_COLOR
 DEFAULT_PLANET_RADIUS = 10
-PLANET_SPACING = 30
+PLANET_SPACING = 15
 G_CUSTOM = 0.0157 # experimentally calculated gravitational constant
 
 # ______________________________
 
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
+space_background = pygame.image.load('space_bg.png').convert()
+space_background = pygame.transform.scale(space_background, (WIDTH, HEIGHT))
+space_background.set_alpha(100)
+
+
+
 pygame.display.set_caption("Solar Synesthesia")
 clock = pygame.time.Clock()
 
@@ -81,8 +88,8 @@ def write_text(text,location,color=(255,255,255)):
 # midi_file = 'Mozart_Symphony_No._40_in_G_Minor_K._550_I._Molto_Allegro.mid'
 # mp3_file = 'Mozart_Symphony_No._40_in_G_Minor_K._550_I._Molto_Allegro.mp3'
 
-midi_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mid'
-mp3_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mp3'
+# midi_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mid'
+# mp3_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mp3'
 
 # midi_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mid'
 # mp3_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mp3'
@@ -90,8 +97,8 @@ mp3_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.m
 # midi_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mid'
 # mp3_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mp3'
 
-# midi_file = '1812_Overture_Complete_Orchestral_Score.mid'
-# mp3_file = '1812_Overture_Complete_Orchestral_Score.mp3'
+midi_file = '1812_Overture_Complete_Orchestral_Score.mid'
+mp3_file = '1812_Overture_Complete_Orchestral_Score.mp3'
 
 # midi_file = 'LOUD_Mahler_8_finale_instrumentation_visualized.mid'
 # mp3_file = 'LOUD_Mahler_8_finale_instrumentation_visualized.mp3'
@@ -132,7 +139,7 @@ class Vector:
 
 
 class PlanetarySystem:
-    MIN_RADIUS = 100
+    MIN_RADIUS = 200
     MAX_RADIUS = min(WIDTH, HEIGHT)
     def __init__(self, bodies):
         self.bodies = bodies # dict of CelestialBodies planets
@@ -210,7 +217,7 @@ class CelestialBody:
 
         if time_elapsed > current_note.start and time_elapsed < current_note.end: # between current note (start, end)
             self.color = self.NOTE_COLOR
-            self.radius = DEFAULT_PLANET_RADIUS*current_note.velocity/50
+            self.radius = DEFAULT_PLANET_RADIUS*current_note.velocity/65
             self.border = int(current_note.pitch/10)
 
             # if self.note_index < self.num_notes-1:
@@ -296,6 +303,7 @@ while running:
 
     
     WIN.fill(BACKGROUND_COLOR)
+    WIN.blit(space_background, (0, 0))
     # pygame.surfarray.blit_array(WIN, background_orbit_paths_array)
     if solar_system.star.radius*ZOOM_FACTOR <= 3: pygame.draw.circle(surface=WIN, color=YELLOW, center=(WIDTH//2, HEIGHT//2), radius=3) # make star a tiny point
 
