@@ -1,5 +1,5 @@
 import pygame
-import pygame.midi
+# import pygame.midi
 from pygame import mixer
 import numpy as np
 import math
@@ -18,8 +18,8 @@ pygame.init()
 # constants
 # ______________________________
 # WIDTH = HEIGHT = 800
-WIDTH = 1280
-HEIGHT = 740
+# WIDTH, HEIGHT = 1280, 746
+WIDTH, HEIGHT = 2040, 1100
 FPS = 60 # never change FPS, used in velocity calculation as delta-t
 ZOOM_FACTOR = 1
 ZOOM_CHANGE = 0.025
@@ -44,12 +44,14 @@ OLIVE = (128,128,0)
 PURPLE = (128,0,128)
 TEAL = (0,128,128)
 NAVY = (0,0,128)
-PLANET_COLORS = (WHITE, RED, GREEN, BLUE, ORANGE, PINK, LIME, CYAN, MAGENTA, SILVER, MAROON, OLIVE, PURPLE, TEAL, NAVY)
+PLANET_COLORS = (WHITE, RED, GREEN, BLUE, ORANGE, PINK, LIME, CYAN, MAGENTA, SILVER, PURPLE, TEAL, NAVY)
 BACKGROUND_COLOR = BLACK
 
 PYGAME_ZOOM_OUT = 4
 PYGAME_ZOOM_IN = 5
 MUSIC_VOLUME = 1
+MIN_STAR_RADIUS = 5
+FONT_SIZE = WIDTH//60
 DEFAULT_PLANET_COLOR = BACKGROUND_COLOR
 DEFAULT_PLANET_RADIUS = 10
 PLANET_SPACING = 15
@@ -62,13 +64,13 @@ space_background = pygame.image.load('space_bg.png').convert()
 space_background = pygame.transform.scale(space_background, (WIDTH, HEIGHT))
 space_background.set_alpha(100)
 
-
+blue_star = pygame.image.load('blue_star.png')
 
 pygame.display.set_caption("Solar Synesthesia")
 clock = pygame.time.Clock()
 
 global font
-font=pygame.font.Font(None,20)
+font=pygame.font.Font(None, FONT_SIZE)
 
 def write_text(text,location,color=(255,255,255)):
     WIN.blit(font.render(text,True,color),location)
@@ -94,17 +96,20 @@ def write_text(text,location,color=(255,255,255)):
 # midi_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mid'
 # mp3_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mp3'
 
-# midi_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mid'
-# mp3_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mp3'
+midi_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mid'
+mp3_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mp3'
 
-midi_file = '1812_Overture_Complete_Orchestral_Score.mid'
-mp3_file = '1812_Overture_Complete_Orchestral_Score.mp3'
+# midi_file = '1812_Overture_Complete_Orchestral_Score.mid'
+# mp3_file = '1812_Overture_Complete_Orchestral_Score.mp3'
 
 # midi_file = 'LOUD_Mahler_8_finale_instrumentation_visualized.mid'
 # mp3_file = 'LOUD_Mahler_8_finale_instrumentation_visualized.mp3'
 
 # midi_file = 'Chorus_Mysticus_-_Mahler_Symphony_of_a_Thousand_WIP.mid'
 # mp3_file = 'Chorus_Mysticus_-_Mahler_Symphony_of_a_Thousand_WIP.mp3'
+
+# midi_file = 'REQUIEM_CONFUTATIS.mid'
+# mp3_file = 'REQUIEM_CONFUTATIS.mp3'
 
 midi_data = pretty_midi.PrettyMIDI(midi_file)
 midi_data.remove_invalid_notes()
@@ -235,6 +240,13 @@ class CelestialBody:
 
     def draw(self):
         global ZOOM_FACTOR
+        global blue_star
+        if not self.is_planet:
+            temp_radius = self.radius*ZOOM_FACTOR
+            new_blue_star = pygame.transform.scale(blue_star, (temp_radius*2, temp_radius*2))
+            WIN.blit(new_blue_star, (self.x - temp_radius, self.y-temp_radius))
+            return
+
         if self.is_planet:
             self.change_planet_on_note()
         if self.color != DEFAULT_PLANET_COLOR: # don't draw planet unless it changes color
@@ -255,7 +267,6 @@ class CelestialBody:
             self.update_position()
         self.draw()
 
-    
 
 
 solar_system_dict = {'sun': CelestialBody(name='sun', x=WIDTH//2, is_planet=False, color=YELLOW, radius=90, mass=100000)}
@@ -305,12 +316,15 @@ while running:
     WIN.fill(BACKGROUND_COLOR)
     WIN.blit(space_background, (0, 0))
     # pygame.surfarray.blit_array(WIN, background_orbit_paths_array)
-    if solar_system.star.radius*ZOOM_FACTOR <= 3: pygame.draw.circle(surface=WIN, color=YELLOW, center=(WIDTH//2, HEIGHT//2), radius=3) # make star a tiny point
+    if solar_system.star.radius*ZOOM_FACTOR <= MIN_STAR_RADIUS: WIN.blit(pygame.transform.scale(blue_star, (MIN_STAR_RADIUS, MIN_STAR_RADIUS)), (solar_system.star.x-MIN_STAR_RADIUS, solar_system.star.y-MIN_STAR_RADIUS)) # make star a tiny point
+    # if solar_system.star.radius*ZOOM_FACTOR <= 3: pygame.draw.circle(surface=WIN, color=YELLOW, center=(WIDTH//2, HEIGHT//2), radius=3) # make star a tiny point
 
     else: solar_system.next_frame()
 
+    # WIN.blit(blue_star, (WIDTH//2-180//2, HEIGHT//2-180//2))
+
     write_text(f'T={round(time.time()-start_time, 3)} s', (0, 0)) # update screen counter
-    write_text(f'{midi_file}', (0, 15), GREY)
+    write_text(f'{midi_file}', (0, FONT_SIZE), GREY)
 
     if time.time() - last_check_for_drift > 10: # check for drift every 10 seconds
         new_start_time = (time.time() - start_time) % solar_system.bodies[0].song_duration
