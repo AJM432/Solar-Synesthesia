@@ -21,7 +21,7 @@ pygame.init()
 WIDTH = HEIGHT = 1050
 FPS = 60 # never change FPS, used in velocity calculation as delta-t
 ZOOM_FACTOR = 1
-ZOOM_CHANGE = 0.1
+ZOOM_CHANGE = 0.025
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -53,17 +53,24 @@ DEFAULT_PLANET_COLOR = BACKGROUND_COLOR
 DEFAULT_PLANET_RADIUS = 10
 PLANET_SPACING = 30
 G_CUSTOM = 0.0157 # experimentally calculated gravitational constant
+
 # ______________________________
 
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Solar Synesthesia")
 clock = pygame.time.Clock()
 
+global font
+font=pygame.font.Font(None,20)
+
+def write_text(text,location,color=(255,255,255)):
+    WIN.blit(font.render(text,True,color),location)
+
 # midi_file = 'Beethoven__Symphony_No._5_Op.67_Mvt._1.mscz.mid'
 # mp3_file = 'Beethoven__Symphony_No._5_Op.67_Mvt._1.mscz.mp3'
 
-midi_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mid'
-mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
+# midi_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mid'
+# mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
 
 # midi_file = 'Antonin_Dvorak_Serenade_for_String_Orchestra_in_E_major_Op.22_II._Tempo_di_Valse.mid'
 # mp3_file = 'Antonin_Dvorak_Serenade_for_String_Orchestra_in_E_major_Op.22_II._Tempo_di_Valse.mp3'
@@ -74,8 +81,8 @@ mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
 # midi_file = 'Mozart_Symphony_No._40_in_G_Minor_K._550_I._Molto_Allegro.mid'
 # mp3_file = 'Mozart_Symphony_No._40_in_G_Minor_K._550_I._Molto_Allegro.mp3'
 
-# midi_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mid'
-# mp3_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mp3'
+midi_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mid'
+mp3_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mp3'
 
 # midi_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mid'
 # mp3_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mp3'
@@ -93,7 +100,7 @@ mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
 # mp3_file = 'Chorus_Mysticus_-_Mahler_Symphony_of_a_Thousand_WIP.mp3'
 
 midi_data = pretty_midi.PrettyMIDI(midi_file)
-
+midi_data.remove_invalid_notes()
 
 # array to keep track of path of celestial bodies
 # TODO: change to local orbital path tracking rather than using a global variable since its impossible to have a large array to hold all system info
@@ -163,6 +170,7 @@ class CelestialBody:
         self.color = color
         self.radius = radius
         self.is_planet = is_planet
+        self.border = 0
 
     def get_gravitational_velocity_vec(self, object_b): # add to initial velocity vector
         force_magnitude = object_b.mass/Vector.distance(self.get_pos_vector(), object_b.get_pos_vector())**2*(1/FPS) # vf_a=M_b/r^2
@@ -194,24 +202,29 @@ class CelestialBody:
 
     def change_planet_on_note(self):
         time_elapsed = (time.time() - start_time) % self.song_duration
-        current_note = self.notes[self.note_index]
+        current_note = self.notes[0] # initialize such that it is note referenced before assignment
+        for note in self.notes:
+            if time_elapsed > note.start and time_elapsed < note.end:
+                current_note = note
+                break
 
         if time_elapsed > current_note.start and time_elapsed < current_note.end: # between current note (start, end)
             self.color = self.NOTE_COLOR
             self.radius = DEFAULT_PLANET_RADIUS*current_note.velocity/50
+            self.border = int(current_note.pitch/10)
 
-            if self.note_index < self.num_notes-1:
-                self.note_index += 1
-            else:
-                self.note_index = 0
-                self.color = DEFAULT_PLANET_COLOR
-                self.radius = DEFAULT_PLANET_RADIUS
+            # if self.note_index < self.num_notes-1:
+                # self.note_index += 1
+            # else:
+                # self.note_index = 0
+                # self.color = DEFAULT_PLANET_COLOR
+                # self.radius = DEFAULT_PLANET_RADIUS
 
         # if self.note_index > 0:
         else:
-            if time_elapsed < current_note.start and time_elapsed > self.notes[self.note_index-1].end: # between pause of last note and current note
-                self.color = DEFAULT_PLANET_COLOR
-                self.radius = DEFAULT_PLANET_RADIUS
+            # if time_elapsed < current_note.start and time_elapsed > self.notes[self.note_index-1].end: # between pause of last note and current note
+            self.color = DEFAULT_PLANET_COLOR
+            self.radius = DEFAULT_PLANET_RADIUS
 
     def draw(self):
         global ZOOM_FACTOR
@@ -221,7 +234,7 @@ class CelestialBody:
             draw_x = WIDTH//2 - ZOOM_FACTOR*(WIDTH//2-self.x)
             draw_y = HEIGHT//2 - ZOOM_FACTOR*(HEIGHT//2-self.y)
             draw_radius = self.radius*ZOOM_FACTOR
-            pygame.draw.circle(surface=WIN, color=self.color, center=(draw_x, draw_y), radius=draw_radius)
+            pygame.draw.circle(surface=WIN, color=self.color, center=(draw_x, draw_y), radius=draw_radius, width=self.border)
             # pygame.draw.circle(surface=WIN, color=self.color, center=(self.x, self.y), radius=self.radius)
 
     # combines all methods required to draw object to screen and interact with other objects
@@ -247,8 +260,10 @@ solar_system = PlanetarySystem(solar_system_dict)
 
 mixer.music.load(mp3_file)
 mixer.music.play(loops=0, start=0)
+
 start_time = time.time()
 last_check_for_drift = time.time() # account for midi and mp3 drifting
+
 
 running = True
 while running:
@@ -263,7 +278,9 @@ while running:
                     ZOOM_FACTOR-=ZOOM_CHANGE
                     MUSIC_VOLUME = ZOOM_FACTOR
                     pygame.mixer.music.set_volume(MUSIC_VOLUME)
-
+                else:
+                    MUSIC_VOLUME = 0
+                    pygame.mixer.music.set_volume(MUSIC_VOLUME)
             if event.button == PYGAME_ZOOM_IN: 
                 ZOOM_FACTOR+=ZOOM_CHANGE
                 if ZOOM_FACTOR > 1:
@@ -284,11 +301,13 @@ while running:
 
     else: solar_system.next_frame()
 
+    write_text(f'T={round(time.time()-start_time, 3)} s', (0, 0)) # update screen counter
+    write_text(f'{midi_file}', (0, 15), GREY)
+
     if time.time() - last_check_for_drift > 10: # check for drift every 10 seconds
         new_start_time = (time.time() - start_time) % solar_system.bodies[0].song_duration
         mixer.music.play(loops=0, start=new_start_time)
         last_check_for_drift = time.time()
-
 
     pygame.display.flip()
 pygame.quit()
