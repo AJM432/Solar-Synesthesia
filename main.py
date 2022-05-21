@@ -54,8 +54,10 @@ MIN_STAR_RADIUS = 5
 FONT_SIZE = WIDTH//60
 DEFAULT_PLANET_COLOR = BACKGROUND_COLOR
 DEFAULT_PLANET_RADIUS = 10
-PLANET_SPACING = 15
+PLANET_SPACING = 25
 G_CUSTOM = 0.0157  # experimentally calculated gravitational constant
+
+ROTATION_ANGLE_CHANGE = 0.05
 
 # ______________________________
 
@@ -125,6 +127,22 @@ midi_data.remove_invalid_notes()
 # background_orbit_paths_array[0:, 0:, 0:] = BACKGROUND_COLOR
 
 
+def rotate_axis(matrix, axis, theta):
+    if axis == 'x':
+        rotation_matrix = np.array([[1, 0, 0],
+                                    [0, np.cos(theta), -np.sin(theta)],
+                                    [0, np.sin(theta), np.cos(theta)]])
+    elif axis == 'y':
+        rotation_matrix = np.array([[np.cos(theta), 0, np.sin(theta)],
+                                    [0, 1, 0],
+                                    [-np.sin(theta), 0, np.cos(theta)]])
+    elif axis == 'z':
+        rotation_matrix =np.array([[np.cos(theta), -np.sin(theta), 0],
+                                    [np.sin(theta), np.cos(theta), 0],
+                                    [0, 0, 1]])
+    return np.dot(matrix, rotation_matrix)
+
+
 class Vector:
     def __init__(self, x, y):
         self.x = x
@@ -150,7 +168,7 @@ class Vector:
 
 
 class PlanetarySystem:
-    MIN_RADIUS = 100
+    MIN_RADIUS = 200
     MAX_RADIUS = min(WIDTH, HEIGHT)
 
     def __init__(self, bodies):
@@ -192,6 +210,9 @@ class CelestialBody:
         self.is_planet = is_planet
         self.border = 0
         self.image = image
+        self.x_rotation = self.x # used for rotation matrix implementation
+        self.y_rotation = self.y
+
 
     # add to initial velocity vector
     def get_gravitational_velocity_vec(self, object_b):
@@ -239,13 +260,6 @@ class CelestialBody:
             self.radius = DEFAULT_PLANET_RADIUS*current_note.velocity/65
             self.border = int(current_note.pitch/10)
 
-            # if self.note_index < self.num_notes-1:
-            # self.note_index += 1
-            # else:
-            # self.note_index = 0
-            # self.color = DEFAULT_PLANET_COLOR
-            # self.radius = DEFAULT_PLANET_RADIUS
-
         # if self.note_index > 0:
         else:
             # if time_elapsed < current_note.start and time_elapsed > self.notes[self.note_index-1].end: # between pause of last note and current note
@@ -259,8 +273,8 @@ class CelestialBody:
             self.change_planet_on_note()
 
         if self.color != DEFAULT_PLANET_COLOR:  # don't draw planet unless it changes color
-            draw_x = WIDTH//2 - ZOOM_FACTOR*(WIDTH//2-self.x)
-            draw_y = HEIGHT//2 - ZOOM_FACTOR*(HEIGHT//2-self.y)
+            draw_x = WIDTH//2 - ZOOM_FACTOR*(WIDTH//2-self.x_rotation)
+            draw_y = HEIGHT//2 - ZOOM_FACTOR*(HEIGHT//2-self.y_rotation)
             draw_radius = self.radius*ZOOM_FACTOR
 
             if self.image != None:
@@ -287,7 +301,7 @@ class CelestialBody:
 
 
 solar_system_dict = {'sun': CelestialBody(
-    name='sun', x=WIDTH//2, is_planet=False, color=YELLOW, radius=90, mass=100000)}
+    name='sun', x=WIDTH//2, is_planet=False, color=YELLOW, radius=90, mass=100000, image=blue_star)}
 for index, instrument in enumerate(midi_data.instruments):
     solar_system_dict[index] = CelestialBody(name=index, instrument=instrument, song_duration=midi_data.get_end_time(
     ), x=WIDTH//2 - PlanetarySystem.MIN_RADIUS - (PLANET_SPACING)*(index+1))
@@ -300,6 +314,14 @@ mixer.music.play(loops=0, start=0)
 
 start_time = time.time()
 last_check_for_drift = time.time()  # account for midi and mp3 drifting
+
+# _______rotation code_______
+
+projection_matrix =np.array([[1, 0, 0],
+                            [0, 1, 0], 
+                            [0, 0, 0]])
+x_axis_angle = y_axis_angle = z_axis_angle = 0 # keeps track of angles rotated along each axis
+#____________________________
 
 
 running = True
@@ -330,6 +352,30 @@ while running:
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_r:
                 ZOOM_FACTOR = 1
+                x_axis_angle = y_axis_angle = z_axis_angle = 0
+
+
+    two_dim_projection = [[planet.x-WIDTH//2, planet.y-HEIGHT//2, 0] for planet in solar_system.bodies.values()]
+    three_dim_points_copy = two_dim_projection.copy()
+
+    keys = pygame.key.get_pressed()
+
+    # without using if statements
+    # y_axis_angle += -ROTATION_ANGLE_CHANGE*int(keys[pygame.K_LEFT]) + ROTATION_ANGLE_CHANGE*int(keys[pygame.K_RIGHT])
+    # x_axis_angle += -ROTATION_ANGLE_CHANGE*int(keys[pygame.K_DOWN]) + ROTATION_ANGLE_CHANGE*int(keys[pygame.K_UP])
+    # z_axis_angle += -ROTATION_ANGLE_CHANGE*int(keys[pygame.K_q]) + ROTATION_ANGLE_CHANGE*int(keys[pygame.K_w])
+
+    if keys[pygame.K_LEFT]: y_axis_angle -= ROTATION_ANGLE_CHANGE
+    if keys[pygame.K_RIGHT]: y_axis_angle += ROTATION_ANGLE_CHANGE
+    if keys[pygame.K_UP]: x_axis_angle += ROTATION_ANGLE_CHANGE
+    if keys[pygame.K_DOWN]: x_axis_angle -= ROTATION_ANGLE_CHANGE
+    if keys[pygame.K_q]: z_axis_angle -= ROTATION_ANGLE_CHANGE
+    if keys[pygame.K_w]: z_axis_angle += ROTATION_ANGLE_CHANGE
+
+    three_dim_points_copy = rotate_axis(three_dim_points_copy, 'x', x_axis_angle)
+    three_dim_points_copy = rotate_axis(three_dim_points_copy, 'y', y_axis_angle)
+    three_dim_points_copy = rotate_axis(three_dim_points_copy, 'z', z_axis_angle)
+    two_dim_projection = np.dot(three_dim_points_copy, projection_matrix)
 
     WIN.fill(BACKGROUND_COLOR)
     WIN.blit(space_background, (0, 0))
@@ -340,6 +386,10 @@ while running:
     # if solar_system.star.radius*ZOOM_FACTOR <= 3: pygame.draw.circle(surface=WIN, color=YELLOW, center=(WIDTH//2, HEIGHT//2), radius=3) # make star a tiny point
 
     else:
+        for planet, pos in zip(solar_system.bodies.values(), two_dim_projection):
+            if planet.is_planet:
+                planet.x_rotation = pos[0] + WIDTH//2
+                planet.y_rotation = pos[1] + HEIGHT//2
         solar_system.next_frame()
 
     # WIN.blit(blue_star, (WIDTH//2-180//2, HEIGHT//2-180//2))
