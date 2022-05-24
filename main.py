@@ -51,7 +51,7 @@ PYGAME_ZOOM_OUT = 4
 PYGAME_ZOOM_IN = 5
 MUSIC_VOLUME = 1
 MIN_STAR_RADIUS = 5
-FONT_SIZE = WIDTH//60
+FONT_SIZE = WIDTH//80
 DEFAULT_PLANET_COLOR = BACKGROUND_COLOR
 DEFAULT_PLANET_RADIUS = 10
 PLANET_SPACING = 25
@@ -71,8 +71,9 @@ blue_star = pygame.image.load('blue_star.png')
 pygame.display.set_caption("Solar Synesthesia")
 clock = pygame.time.Clock()
 
+THE_BOLD_FONT = 'THEBOLDFONT.ttf'
 global font
-font = pygame.font.Font(None, FONT_SIZE)
+font = pygame.font.Font(THE_BOLD_FONT, FONT_SIZE)
 
 
 def write_text(text, location, color=(255, 255, 255)):
@@ -82,8 +83,8 @@ def write_text(text, location, color=(255, 255, 255)):
 # mp3_file = 'Beethoven__Symphony_No._5_Op.67_Mvt._1.mscz.mp3'
 
 
-midi_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mid'
-mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
+# midi_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mid'
+# mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
 
 # midi_file = 'Antonin_Dvorak_Serenade_for_String_Orchestra_in_E_major_Op.22_II._Tempo_di_Valse.mid'
 # mp3_file = 'Antonin_Dvorak_Serenade_for_String_Orchestra_in_E_major_Op.22_II._Tempo_di_Valse.mp3'
@@ -97,8 +98,8 @@ mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
 # midi_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mid'
 # mp3_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mp3'
 
-# midi_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mid'
-# mp3_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mp3'
+midi_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mid'
+mp3_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mp3'
 
 # midi_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mid'
 # mp3_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mp3'
@@ -300,6 +301,7 @@ class CelestialBody:
         self.draw()
 
 
+
 solar_system_dict = {'sun': CelestialBody(
     name='sun', x=WIDTH//2, is_planet=False, color=YELLOW, radius=90, mass=100000, image=blue_star)}
 for index, instrument in enumerate(midi_data.instruments):
@@ -406,4 +408,3 @@ while running:
 
     pygame.display.flip()
 pygame.quit()
-
