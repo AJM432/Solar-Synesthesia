@@ -1,4 +1,5 @@
 import pygame
+from pygame import Vector2
 import pygame.midi
 from pygame import mixer
 import numpy as np
@@ -15,6 +16,8 @@ import random
 # ______________________________
 pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=4096)
 pygame.init()
+
+
 # constants
 # ______________________________
 # WIDTH = HEIGHT = 800
@@ -47,10 +50,14 @@ PLANET_COLORS = (WHITE, RED, GREEN, BLUE, ORANGE, PINK, LIME,
                  CYAN, MAGENTA, SILVER, PURPLE, TEAL, NAVY)
 BACKGROUND_COLOR = BLACK
 
+PYGAME_RIGHT_CLICK = 1
+PYGAME_LEFT_CLICK = 2
 PYGAME_ZOOM_OUT = 4
 PYGAME_ZOOM_IN = 5
 MUSIC_VOLUME = 1
-MIN_STAR_RADIUS = 5
+MUSIC_START = 100
+MIN_STAR_RADIUS = 10
+MIN_SOLAR_RADIUS = 5
 FONT_SIZE = WIDTH//80
 DEFAULT_PLANET_COLOR = BACKGROUND_COLOR
 DEFAULT_PLANET_RADIUS = 10
@@ -58,8 +65,48 @@ PLANET_SPACING = 25
 G_CUSTOM = 0.0157  # experimentally calculated gravitational constant
 
 ROTATION_ANGLE_CHANGE = 0.05
+#______________________________
 
+
+# star_distribution
+#______________________________
+STAR_COUNT = 10
+MIN_STAR_RADIUS=2
+DEFAULT_SMALL_STAR_RADIUS = 10
+SMALL_GALAXY_RADIUS = 500
+LARGE_GALAXY_RADIUS = 1500
+GALAXY_ZOOM_THRESHOLD = 1.2
+
+def find_nearest_star(x, y, galaxy):
+    nearest_index = 0
+    my_pos = Vector2(x, y)
+    nearest_star_distance = my_pos.distance_to(Vector2(galaxy[0][0], galaxy[0][1]))
+    for index, star in enumerate(galaxy):
+        star_vec = Vector2(star[0], star[1])
+        distance = my_pos.distance_to(star_vec)
+        if distance < nearest_star_distance:
+            nearest_index = index
+            nearest_star_distance = distance
+    return nearest_index
+
+
+def create_galaxy(STAR_COUNT, SMALL_GALAXY_RADIUS, LARGE_GALAXY_RADIUS):
+    galaxy = []
+    for star in range(STAR_COUNT):
+        rand_n = random.randint(1, 10)
+        if rand_n in range(1, 4+1):
+            x_coord = random.randint(-SMALL_GALAXY_RADIUS, SMALL_GALAXY_RADIUS)
+            y_coord = random.randint(
+                int(-(SMALL_GALAXY_RADIUS**2 - x_coord**2)**(1/2)), int((SMALL_GALAXY_RADIUS**2 - x_coord**2)**(1/2)))
+            galaxy.append([x_coord+WIDTH//2, y_coord+HEIGHT//2])
+        else:
+            x_coord = random.randint(-LARGE_GALAXY_RADIUS, LARGE_GALAXY_RADIUS)
+            y_coord = random.randint(
+                int(-(LARGE_GALAXY_RADIUS**2 - x_coord**2)**(1/2)), int((LARGE_GALAXY_RADIUS**2 - x_coord**2)**(1/2)))
+            galaxy.append([x_coord+WIDTH//2, y_coord+HEIGHT//2])
+    return galaxy
 # ______________________________
+
 
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 space_background = pygame.image.load('space_bg.png').convert()
@@ -75,6 +122,8 @@ THE_BOLD_FONT = 'THEBOLDFONT.ttf'
 global font
 font = pygame.font.Font(THE_BOLD_FONT, FONT_SIZE)
 
+VIEW_OPTIONS = ('star', 'galaxy')
+view_mode = VIEW_OPTIONS[0] # must only be 'star' or 'galaxy'
 
 def write_text(text, location, color=(255, 255, 255)):
     WIN.blit(font.render(text, True, color), location)
@@ -116,8 +165,6 @@ mp3_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full
 # midi_file = 'REQUIEM_CONFUTATIS.mid'
 # mp3_file = 'REQUIEM_CONFUTATIS.mp3'
 
-# midi_file = 'Drake_Sicko_Mode.mid'
-# mp3_file = 'Drake_Sicko_Mode.mp3'
 
 midi_data = pretty_midi.PrettyMIDI(midi_file)
 midi_data.remove_invalid_notes()
@@ -300,22 +347,35 @@ class CelestialBody:
             self.update_position()
         self.draw()
 
+# create galaxy
+#______________________________
+galaxy = create_galaxy(STAR_COUNT, SMALL_GALAXY_RADIUS, LARGE_GALAXY_RADIUS)
+x, y = 0, 0
+x_center_offset, y_center_offset = 0, 0
+
+curr_star_index=0
+curr_star=galaxy[curr_star_index]
+galaxy_draw_pos = galaxy
+#______________________________
 
 
+# create solar system
+#______________________________
 solar_system_dict = {'sun': CelestialBody(
     name='sun', x=WIDTH//2, is_planet=False, color=YELLOW, radius=90, mass=100000, image=blue_star)}
 for index, instrument in enumerate(midi_data.instruments):
     solar_system_dict[index] = CelestialBody(name=index, instrument=instrument, song_duration=midi_data.get_end_time(
     ), x=WIDTH//2 - PlanetarySystem.MIN_RADIUS - (PLANET_SPACING)*(index+1))
 
-
 solar_system = PlanetarySystem(solar_system_dict)
+#______________________________
+
 
 mixer.music.load(mp3_file)
-mixer.music.play(loops=0, start=0)
+mixer.music.play(loops=0, start=MUSIC_START)
 
-start_time = time.time()
-last_check_for_drift = time.time()  # account for midi and mp3 drifting
+start_time = time.time() - MUSIC_START
+last_check_for_drift = time.time() - MUSIC_START  # account for midi and mp3 drifting
 
 # _______rotation code_______
 
@@ -333,78 +393,125 @@ while running:
         if event.type == pygame.QUIT:
             running = False
         if event.type == pygame.MOUSEBUTTONDOWN:
+            if view_mode == VIEW_OPTIONS[0]: # view check
+                if event.button == PYGAME_ZOOM_OUT:
+                    if ZOOM_FACTOR-ZOOM_CHANGE > 0:
+                        ZOOM_FACTOR -= ZOOM_CHANGE
+                        MUSIC_VOLUME = ZOOM_FACTOR
+                        pygame.mixer.music.set_volume(MUSIC_VOLUME)
+                    else:
+                        MUSIC_VOLUME = 0
+                        pygame.mixer.music.set_volume(MUSIC_VOLUME)
+                if event.button == PYGAME_ZOOM_IN:
+                    ZOOM_FACTOR += ZOOM_CHANGE
+                    if ZOOM_FACTOR > 1:
+                        MUSIC_VOLUME = 1
+                    else:
+                        MUSIC_VOLUME = ZOOM_FACTOR
+                    pygame.mixer.music.set_volume(MUSIC_VOLUME)
+            else:
+                curr_star = galaxy[curr_star_index]
+                x_center_offset = WIDTH//2-curr_star[0]
+                y_center_offset = HEIGHT//2-curr_star[1]
 
-            if event.button == PYGAME_ZOOM_OUT:
-                if ZOOM_FACTOR-ZOOM_CHANGE > 0:
+                if event.button == PYGAME_RIGHT_CLICK:
+                    x, y = pygame.mouse.get_pos()
+                    curr_star_index = find_nearest_star(x, y, galaxy_draw_pos)
+                    
+
+                if event.button == PYGAME_ZOOM_OUT and ZOOM_FACTOR-ZOOM_CHANGE > 0 and ZOOM_FACTOR*DEFAULT_SMALL_STAR_RADIUS >= MIN_STAR_RADIUS:
                     ZOOM_FACTOR -= ZOOM_CHANGE
-                    MUSIC_VOLUME = ZOOM_FACTOR
-                    pygame.mixer.music.set_volume(MUSIC_VOLUME)
-                else:
-                    MUSIC_VOLUME = 0
-                    pygame.mixer.music.set_volume(MUSIC_VOLUME)
-            if event.button == PYGAME_ZOOM_IN:
-                ZOOM_FACTOR += ZOOM_CHANGE
-                if ZOOM_FACTOR > 1:
-                    MUSIC_VOLUME = 1
-                else:
-                    MUSIC_VOLUME = ZOOM_FACTOR
-                pygame.mixer.music.set_volume(MUSIC_VOLUME)
+                if event.button == PYGAME_ZOOM_IN:
+                    ZOOM_FACTOR += ZOOM_CHANGE
 
-        # keys = pygame.key.get_pressed()
-        if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_r:
-                ZOOM_FACTOR = 1
-                x_axis_angle = y_axis_angle = z_axis_angle = 0
+        keys = pygame.key.get_pressed()
+        
+        if view_mode == VIEW_OPTIONS[0]: # view check
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r:
+                    ZOOM_FACTOR = 1
+                    x_axis_angle = y_axis_angle = z_axis_angle = 0
+            else:
+                if keys[pygame.K_r]:
+                    ZOOM_FACTOR = 1
 
 
-    two_dim_projection = [[planet.x-WIDTH//2, planet.y-HEIGHT//2, 0] for planet in solar_system.bodies.values()]
-    three_dim_points_copy = two_dim_projection.copy()
+    if view_mode == VIEW_OPTIONS[0]: # view check
+        two_dim_projection = [[planet.x-WIDTH//2, planet.y-HEIGHT//2, 0] for planet in solar_system.bodies.values()]
+        three_dim_points_copy = two_dim_projection.copy()
 
-    keys = pygame.key.get_pressed()
 
-    # without using if statements
-    # y_axis_angle += -ROTATION_ANGLE_CHANGE*int(keys[pygame.K_LEFT]) + ROTATION_ANGLE_CHANGE*int(keys[pygame.K_RIGHT])
-    # x_axis_angle += -ROTATION_ANGLE_CHANGE*int(keys[pygame.K_DOWN]) + ROTATION_ANGLE_CHANGE*int(keys[pygame.K_UP])
-    # z_axis_angle += -ROTATION_ANGLE_CHANGE*int(keys[pygame.K_q]) + ROTATION_ANGLE_CHANGE*int(keys[pygame.K_w])
+        # without using if statements
+        y_axis_angle += ROTATION_ANGLE_CHANGE*(-int(keys[pygame.K_LEFT]) + int(keys[pygame.K_RIGHT]))
+        x_axis_angle += ROTATION_ANGLE_CHANGE*(-int(keys[pygame.K_DOWN]) + int(keys[pygame.K_UP]))
+        z_axis_angle += ROTATION_ANGLE_CHANGE*(-int(keys[pygame.K_q]) + int(keys[pygame.K_w]))
 
-    if keys[pygame.K_LEFT]: y_axis_angle -= ROTATION_ANGLE_CHANGE
-    if keys[pygame.K_RIGHT]: y_axis_angle += ROTATION_ANGLE_CHANGE
-    if keys[pygame.K_UP]: x_axis_angle += ROTATION_ANGLE_CHANGE
-    if keys[pygame.K_DOWN]: x_axis_angle -= ROTATION_ANGLE_CHANGE
-    if keys[pygame.K_q]: z_axis_angle -= ROTATION_ANGLE_CHANGE
-    if keys[pygame.K_w]: z_axis_angle += ROTATION_ANGLE_CHANGE
+        # if keys[pygame.K_LEFT]: y_axis_angle -= ROTATION_ANGLE_CHANGE
+        # if keys[pygame.K_RIGHT]: y_axis_angle += ROTATION_ANGLE_CHANGE
+        # if keys[pygame.K_UP]: x_axis_angle += ROTATION_ANGLE_CHANGE
+        # if keys[pygame.K_DOWN]: x_axis_angle -= ROTATION_ANGLE_CHANGE
+        # if keys[pygame.K_q]: z_axis_angle -= ROTATION_ANGLE_CHANGE
+        # if keys[pygame.K_w]: z_axis_angle += ROTATION_ANGLE_CHANGE
 
-    three_dim_points_copy = rotate_axis(three_dim_points_copy, 'x', x_axis_angle)
-    three_dim_points_copy = rotate_axis(three_dim_points_copy, 'y', y_axis_angle)
-    three_dim_points_copy = rotate_axis(three_dim_points_copy, 'z', z_axis_angle)
-    two_dim_projection = np.dot(three_dim_points_copy, projection_matrix)
+        three_dim_points_copy = rotate_axis(three_dim_points_copy, 'x', x_axis_angle)
+        three_dim_points_copy = rotate_axis(three_dim_points_copy, 'y', y_axis_angle)
+        three_dim_points_copy = rotate_axis(three_dim_points_copy, 'z', z_axis_angle)
+        two_dim_projection = np.dot(three_dim_points_copy, projection_matrix)
 
-    WIN.fill(BACKGROUND_COLOR)
-    WIN.blit(space_background, (0, 0))
-    # pygame.surfarray.blit_array(WIN, background_orbit_paths_array)
-    if solar_system.star.radius*ZOOM_FACTOR <= MIN_STAR_RADIUS:
-        WIN.blit(pygame.transform.scale(blue_star, (MIN_STAR_RADIUS, MIN_STAR_RADIUS)),
-                 (solar_system.star.x-MIN_STAR_RADIUS, solar_system.star.y-MIN_STAR_RADIUS))  # make star a tiny point
-    # if solar_system.star.radius*ZOOM_FACTOR <= 3: pygame.draw.circle(surface=WIN, color=YELLOW, center=(WIDTH//2, HEIGHT//2), radius=3) # make star a tiny point
+    if view_mode == VIEW_OPTIONS[0]: # view check
+        WIN.fill(BACKGROUND_COLOR)
+        WIN.blit(space_background, (0, 0))
+        # pygame.surfarray.blit_array(WIN, background_orbit_paths_array)
+        if solar_system.star.radius*ZOOM_FACTOR <= MIN_SOLAR_RADIUS:
+            view_mode = VIEW_OPTIONS[1]
+            pygame.mixer.music.stop()
+            # WIN.blit(pygame.transform.scale(blue_star, (MIN_STAR_RADIUS, MIN_STAR_RADIUS)),
+                    # (solar_system.star.x-MIN_STAR_RADIUS, solar_system.star.y-MIN_STAR_RADIUS))  # make star a tiny point
 
+        # if solar_system.star.radius*ZOOM_FACTOR <= 3: pygame.draw.circle(surface=WIN, color=YELLOW, center=(WIDTH//2, HEIGHT//2), radius=3) # make star a tiny point
+
+
+        else:
+            for planet, pos in zip(solar_system.bodies.values(), two_dim_projection):
+                if planet.is_planet:
+                    planet.x_rotation = pos[0] + WIDTH//2
+                    planet.y_rotation = pos[1] + HEIGHT//2
+            solar_system.next_frame()
+
+        write_text(f'T={round(time.time()-start_time, 3)} s',
+                (0, 0))  # update screen counter
+        write_text(f'{midi_file}', (0, FONT_SIZE), GREY)
+
+        # if time.time() - last_check_for_drift > 10:  # check for drift every 10 seconds
+        #     new_start_time = (
+        #         time.time() - start_time) % solar_system.bodies[0].song_duration
+        #     mixer.music.play(loops=0, start=new_start_time)
+        #     last_check_for_drift = time.time()
     else:
-        for planet, pos in zip(solar_system.bodies.values(), two_dim_projection):
-            if planet.is_planet:
-                planet.x_rotation = pos[0] + WIDTH//2
-                planet.y_rotation = pos[1] + HEIGHT//2
-        solar_system.next_frame()
+        WIN.fill(BLACK)
+        galaxy_draw_pos = []
+        for index, star in enumerate(galaxy):
+            draw_x = curr_star[0]-ZOOM_FACTOR*(curr_star[0]-star[0]) + x_center_offset
+            draw_y = curr_star[1]-ZOOM_FACTOR*(curr_star[1]-star[1]) + y_center_offset
 
-    # WIN.blit(blue_star, (WIDTH//2-180//2, HEIGHT//2-180//2))
+            galaxy_draw_pos.append([draw_x, draw_y])
 
-    write_text(f'T={round(time.time()-start_time, 3)} s',
-               (0, 0))  # update screen counter
-    write_text(f'{midi_file}', (0, FONT_SIZE), GREY)
+            if DEFAULT_SMALL_STAR_RADIUS*ZOOM_FACTOR >= MIN_STAR_RADIUS:
+                # new_radius = DEFAULT_RADIUS*ZOOM_FACTOR
+                new_radius = MIN_STAR_RADIUS
+            else:
+                new_radius = MIN_STAR_RADIUS
 
-    if time.time() - last_check_for_drift > 10:  # check for drift every 10 seconds
-        new_start_time = (
-            time.time() - start_time) % solar_system.bodies[0].song_duration
-        mixer.music.play(loops=0, start=new_start_time)
-        last_check_for_drift = time.time()
+                
+            if index == curr_star_index:
+                pygame.draw.circle(WIN, RED, (draw_x, draw_y), new_radius)
+            else:
+                pygame.draw.circle(WIN, WHITE, (draw_x, draw_y), new_radius)
+        if ZOOM_FACTOR >= GALAXY_ZOOM_THRESHOLD:
+            mixer.music.load(mp3_file)
+            mixer.music.play(loops=0, start=time.time() % list(solar_system.bodies.values())[1].song_duration)
+            view_mode = VIEW_OPTIONS[0]
+            ZOOM_FACTOR = 1
 
     pygame.display.flip()
 pygame.quit()
