@@ -25,7 +25,7 @@ WIDTH, HEIGHT = 1280, 746
 # WIDTH, HEIGHT = 2040, 1100
 FPS = 60  # never change FPS, used in velocity calculation as delta-t
 ZOOM_FACTOR = 1
-ZOOM_CHANGE = 0.025
+ZOOM_CHANGE = 0.05
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 RED = (255, 0, 0)
@@ -63,6 +63,7 @@ DEFAULT_PLANET_COLOR = BACKGROUND_COLOR
 DEFAULT_PLANET_RADIUS = 10
 PLANET_SPACING = 25
 G_CUSTOM = 0.0157  # experimentally calculated gravitational constant
+SOLAR_ZOOM_FACTOR = 1
 
 ROTATION_ANGLE_CHANGE = 0.05
 #______________________________
@@ -70,12 +71,13 @@ ROTATION_ANGLE_CHANGE = 0.05
 
 # star_distribution
 #______________________________
-STAR_COUNT = 10
+STAR_COUNT = 100
 MIN_STAR_RADIUS=2
 DEFAULT_SMALL_STAR_RADIUS = 10
 SMALL_GALAXY_RADIUS = 500
 LARGE_GALAXY_RADIUS = 1500
-GALAXY_ZOOM_THRESHOLD = 1.2
+GALAXY_ZOOM_THRESHOLD = 1.1
+GALAXY_ZOOM_FACTOR = 1
 
 def find_nearest_star(x, y, galaxy):
     nearest_index = 0
@@ -132,8 +134,8 @@ def write_text(text, location, color=(255, 255, 255)):
 # mp3_file = 'Beethoven__Symphony_No._5_Op.67_Mvt._1.mscz.mp3'
 
 
-# midi_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mid'
-# mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
+midi_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mid'
+mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
 
 # midi_file = 'Antonin_Dvorak_Serenade_for_String_Orchestra_in_E_major_Op.22_II._Tempo_di_Valse.mid'
 # mp3_file = 'Antonin_Dvorak_Serenade_for_String_Orchestra_in_E_major_Op.22_II._Tempo_di_Valse.mp3'
@@ -147,8 +149,8 @@ def write_text(text, location, color=(255, 255, 255)):
 # midi_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mid'
 # mp3_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mp3'
 
-midi_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mid'
-mp3_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mp3'
+# midi_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mid'
+# mp3_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mp3'
 
 # midi_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mid'
 # mp3_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mp3'
@@ -315,15 +317,15 @@ class CelestialBody:
             self.radius = DEFAULT_PLANET_RADIUS
 
     def draw(self):
-        global ZOOM_FACTOR
+        global SOLAR_ZOOM_FACTOR
 
         if self.is_planet:
             self.change_planet_on_note()
 
         if self.color != DEFAULT_PLANET_COLOR:  # don't draw planet unless it changes color
-            draw_x = WIDTH//2 - ZOOM_FACTOR*(WIDTH//2-self.x_rotation)
-            draw_y = HEIGHT//2 - ZOOM_FACTOR*(HEIGHT//2-self.y_rotation)
-            draw_radius = self.radius*ZOOM_FACTOR
+            draw_x = WIDTH//2 - SOLAR_ZOOM_FACTOR*(WIDTH//2-self.x_rotation)
+            draw_y = HEIGHT//2 - SOLAR_ZOOM_FACTOR*(HEIGHT//2-self.y_rotation)
+            draw_radius = self.radius*SOLAR_ZOOM_FACTOR
 
             if self.image != None:
                 transformed_image = pygame.transform.scale(
@@ -395,19 +397,19 @@ while running:
         if event.type == pygame.MOUSEBUTTONDOWN:
             if view_mode == VIEW_OPTIONS[0]: # view check
                 if event.button == PYGAME_ZOOM_OUT:
-                    if ZOOM_FACTOR-ZOOM_CHANGE > 0:
-                        ZOOM_FACTOR -= ZOOM_CHANGE
-                        MUSIC_VOLUME = ZOOM_FACTOR
+                    if SOLAR_ZOOM_FACTOR-ZOOM_CHANGE > 0:
+                        SOLAR_ZOOM_FACTOR -= ZOOM_CHANGE
+                        MUSIC_VOLUME = SOLAR_ZOOM_FACTOR
                         pygame.mixer.music.set_volume(MUSIC_VOLUME)
                     else:
                         MUSIC_VOLUME = 0
                         pygame.mixer.music.set_volume(MUSIC_VOLUME)
                 if event.button == PYGAME_ZOOM_IN:
-                    ZOOM_FACTOR += ZOOM_CHANGE
-                    if ZOOM_FACTOR > 1:
+                    SOLAR_ZOOM_FACTOR += ZOOM_CHANGE
+                    if SOLAR_ZOOM_FACTOR > 1:
                         MUSIC_VOLUME = 1
                     else:
-                        MUSIC_VOLUME = ZOOM_FACTOR
+                        MUSIC_VOLUME = SOLAR_ZOOM_FACTOR
                     pygame.mixer.music.set_volume(MUSIC_VOLUME)
             else:
                 curr_star = galaxy[curr_star_index]
@@ -419,21 +421,21 @@ while running:
                     curr_star_index = find_nearest_star(x, y, galaxy_draw_pos)
                     
 
-                if event.button == PYGAME_ZOOM_OUT and ZOOM_FACTOR-ZOOM_CHANGE > 0 and ZOOM_FACTOR*DEFAULT_SMALL_STAR_RADIUS >= MIN_STAR_RADIUS:
-                    ZOOM_FACTOR -= ZOOM_CHANGE
+                if event.button == PYGAME_ZOOM_OUT and GALAXY_ZOOM_FACTOR-ZOOM_CHANGE > 0 and GALAXY_ZOOM_FACTOR*DEFAULT_SMALL_STAR_RADIUS >= MIN_STAR_RADIUS:
+                    GALAXY_ZOOM_FACTOR -= ZOOM_CHANGE
                 if event.button == PYGAME_ZOOM_IN:
-                    ZOOM_FACTOR += ZOOM_CHANGE
+                    GALAXY_ZOOM_FACTOR += ZOOM_CHANGE
 
         keys = pygame.key.get_pressed()
         
         if view_mode == VIEW_OPTIONS[0]: # view check
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_r:
-                    ZOOM_FACTOR = 1
+                    SOLAR_ZOOM_FACTOR = 1
                     x_axis_angle = y_axis_angle = z_axis_angle = 0
             else:
                 if keys[pygame.K_r]:
-                    ZOOM_FACTOR = 1
+                    GALAXY_ZOOM_FACTOR = 1
 
 
     if view_mode == VIEW_OPTIONS[0]: # view check
@@ -462,7 +464,7 @@ while running:
         WIN.fill(BACKGROUND_COLOR)
         WIN.blit(space_background, (0, 0))
         # pygame.surfarray.blit_array(WIN, background_orbit_paths_array)
-        if solar_system.star.radius*ZOOM_FACTOR <= MIN_SOLAR_RADIUS:
+        if solar_system.star.radius*SOLAR_ZOOM_FACTOR <= MIN_SOLAR_RADIUS:
             view_mode = VIEW_OPTIONS[1]
             pygame.mixer.music.stop()
             # WIN.blit(pygame.transform.scale(blue_star, (MIN_STAR_RADIUS, MIN_STAR_RADIUS)),
@@ -478,25 +480,21 @@ while running:
                     planet.y_rotation = pos[1] + HEIGHT//2
             solar_system.next_frame()
 
-        write_text(f'T={round(time.time()-start_time, 3)} s',
-                (0, 0))  # update screen counter
-        write_text(f'{midi_file}', (0, FONT_SIZE), GREY)
 
-        # if time.time() - last_check_for_drift > 10:  # check for drift every 10 seconds
-        #     new_start_time = (
-        #         time.time() - start_time) % solar_system.bodies[0].song_duration
-        #     mixer.music.play(loops=0, start=new_start_time)
-        #     last_check_for_drift = time.time()
+        if time.time() - last_check_for_drift > 10:  # check for drift every 10 seconds
+            new_start_time = (time.time() - start_time) % solar_system.bodies[1].song_duration
+            mixer.music.play(loops=0, start=new_start_time)
+            last_check_for_drift = time.time()
     else:
         WIN.fill(BLACK)
         galaxy_draw_pos = []
         for index, star in enumerate(galaxy):
-            draw_x = curr_star[0]-ZOOM_FACTOR*(curr_star[0]-star[0]) + x_center_offset
-            draw_y = curr_star[1]-ZOOM_FACTOR*(curr_star[1]-star[1]) + y_center_offset
+            draw_x = curr_star[0]-GALAXY_ZOOM_FACTOR*(curr_star[0]-star[0]) + x_center_offset
+            draw_y = curr_star[1]-GALAXY_ZOOM_FACTOR*(curr_star[1]-star[1]) + y_center_offset
 
             galaxy_draw_pos.append([draw_x, draw_y])
 
-            if DEFAULT_SMALL_STAR_RADIUS*ZOOM_FACTOR >= MIN_STAR_RADIUS:
+            if DEFAULT_SMALL_STAR_RADIUS*GALAXY_ZOOM_FACTOR >= MIN_STAR_RADIUS:
                 # new_radius = DEFAULT_RADIUS*ZOOM_FACTOR
                 new_radius = MIN_STAR_RADIUS
             else:
@@ -507,11 +505,17 @@ while running:
                 pygame.draw.circle(WIN, RED, (draw_x, draw_y), new_radius)
             else:
                 pygame.draw.circle(WIN, WHITE, (draw_x, draw_y), new_radius)
-        if ZOOM_FACTOR >= GALAXY_ZOOM_THRESHOLD:
+        if GALAXY_ZOOM_FACTOR >= GALAXY_ZOOM_THRESHOLD:
             mixer.music.load(mp3_file)
-            mixer.music.play(loops=0, start=time.time() % list(solar_system.bodies.values())[1].song_duration)
+            new_start_time = (time.time() - start_time) % solar_system.bodies[1].song_duration
+            mixer.music.play(loops=0, start=new_start_time)
             view_mode = VIEW_OPTIONS[0]
-            ZOOM_FACTOR = 1
+
+
+    write_text(f'T={round(time.time()-start_time, 3)} s', (0, 0))  # update screen counter
+    write_text(f'{midi_file}', (0, FONT_SIZE), GREY)
+
+    print(GALAXY_ZOOM_FACTOR)
 
     pygame.display.flip()
 pygame.quit()
