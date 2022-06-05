@@ -132,43 +132,6 @@ view_mode = VIEW_OPTIONS[0] # must only be 'star' or 'galaxy'
 def write_text(text, location, color=(255, 255, 255)):
     WIN.blit(font.render(text, True, color), location)
 
-# midi_file = 'Beethoven__Symphony_No._5_Op.67_Mvt._1.mscz.mid'
-# mp3_file = 'Beethoven__Symphony_No._5_Op.67_Mvt._1.mscz.mp3'
-
-
-# midi_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mid'
-# mp3_file = '_Symphony_No._41_in_C_major_K._551_Movement_4.mp3'
-
-# midi_file = 'Antonin_Dvorak_Serenade_for_String_Orchestra_in_E_major_Op.22_II._Tempo_di_Valse.mid'
-# mp3_file = 'Antonin_Dvorak_Serenade_for_String_Orchestra_in_E_major_Op.22_II._Tempo_di_Valse.mp3'
-
-# midi_file = 'swan_lake-scene.mid'
-# mp3_file = 'swan_lake-scene.mp3'
-
-# midi_file = 'Mozart_Symphony_No._40_in_G_Minor_K._550_I._Molto_Allegro.mid'
-# mp3_file = 'Mozart_Symphony_No._40_in_G_Minor_K._550_I._Molto_Allegro.mp3'
-
-# midi_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mid'
-# mp3_file = 'Requiem_in_D_Minor_K._626_III._Sequentia_Lacrimosa_By_W._A._Mozart.mp3'
-
-# midi_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mid'
-# mp3_file = 'Schubert_-_Symphony_No.8._Mvt.1._D.759._Professional_production_full_score._Unfinished.mp3'
-
-# midi_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mid'
-# mp3_file = 'Eine_Kleine_Nachtmusik_1st_Movement.mp3'
-
-# midi_file = '1812_Overture_Complete_Orchestral_Score.mid'
-# mp3_file = '1812_Overture_Complete_Orchestral_Score.mp3'
-
-# midi_file = 'LOUD_Mahler_8_finale_instrumentation_visualized.mid'
-# mp3_file = 'LOUD_Mahler_8_finale_instrumentation_visualized.mp3'
-
-# midi_file = 'Chorus_Mysticus_-_Mahler_Symphony_of_a_Thousand_WIP.mid'
-# mp3_file = 'Chorus_Mysticus_-_Mahler_Symphony_of_a_Thousand_WIP.mp3'
-
-# midi_file = 'REQUIEM_CONFUTATIS.mid'
-# mp3_file = 'REQUIEM_CONFUTATIS.mp3'
-
 
 # array to keep track of path of celestial bodies
 # TODO: change to local orbital path tracking rather than using a global variable since its impossible to have a large array to hold all system info
@@ -474,13 +437,6 @@ while running:
         y_axis_angle += ROTATION_ANGLE_CHANGE*(-int(keys[pygame.K_LEFT]) + int(keys[pygame.K_RIGHT]))
         x_axis_angle += ROTATION_ANGLE_CHANGE*(-int(keys[pygame.K_DOWN]) + int(keys[pygame.K_UP]))
         z_axis_angle += ROTATION_ANGLE_CHANGE*(-int(keys[pygame.K_q]) + int(keys[pygame.K_w]))
-
-        # if keys[pygame.K_LEFT]: y_axis_angle -= ROTATION_ANGLE_CHANGE
-        # if keys[pygame.K_RIGHT]: y_axis_angle += ROTATION_ANGLE_CHANGE
-        # if keys[pygame.K_UP]: x_axis_angle += ROTATION_ANGLE_CHANGE
-        # if keys[pygame.K_DOWN]: x_axis_angle -= ROTATION_ANGLE_CHANGE
-        # if keys[pygame.K_q]: z_axis_angle -= ROTATION_ANGLE_CHANGE
-        # if keys[pygame.K_w]: z_axis_angle += ROTATION_ANGLE_CHANGE
 
         three_dim_points_copy = rotate_axis(three_dim_points_copy, 'x', x_axis_angle)
         three_dim_points_copy = rotate_axis(three_dim_points_copy, 'y', y_axis_angle)
