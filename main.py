@@ -6,19 +6,19 @@ import random
 import os
 import pickle
 
-from pygments import highlight
-from constants import *
 import datetime
 
 # constants
 # ______________________________
 # ______________________________
 # WIDTH = HEIGHT = 800
-WIDTH, HEIGHT = 1280, 746
-# WIDTH, HEIGHT = 2048, 1099
+# WIDTH, HEIGHT = 1280, 746
+WIDTH, HEIGHT = 2048, 1099
 FPS = 60  # never change FPS, used in velocity calculation as delta-t
 ZOOM_FACTOR = 1
 ZOOM_CHANGE = 0.05
+
+CENTER = (WIDTH//2, HEIGHT//2)
 
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
@@ -51,17 +51,19 @@ PYGAME_ZOOM_OUT = 4
 PYGAME_ZOOM_IN = 5
 MUSIC_VOLUME = 1
 MUSIC_START = 0
-MIN_STAR_RADIUS = 10
 MIN_SOLAR_RADIUS = 5
 FONT_SIZE = WIDTH//80
 DEFAULT_PLANET_COLOR = BACKGROUND_COLOR
 DEFAULT_PLANET_RADIUS = 10
-PLANET_SPACING = 40
-G_CUSTOM = 0.0157  # experimentally calculated gravitational constant
+PLANET_SPACING = 30
+# G_CUSTOM = 0.0157  # experimentally calculated gravitational constant
+G_CUSTOM = 0.0166  # experimentally calculated gravitational constant
 SOLAR_ZOOM_FACTOR = 1
 
 ROTATION_ANGLE_CHANGE = 0.05
 MUSIC_SKIP_INCREMENT = 2.5
+
+ORBIT_PATHS_ON = True
 
 
 # ______________________________
@@ -69,7 +71,7 @@ MUSIC_SKIP_INCREMENT = 2.5
 
 # star_distribution
 # ______________________________
-MIN_STAR_RADIUS = 2
+MIN_STAR_RADIUS = 4
 DEFAULT_SMALL_STAR_RADIUS = 10
 SMALL_GALAXY_RADIUS = 500
 LARGE_GALAXY_RADIUS = 1500
@@ -96,8 +98,9 @@ pygame.display.set_caption("Solar Synesthesia")
 clock = pygame.time.Clock()
 
 # Font Setup __________________________________________
-THE_BOLD_FONT_FILE = os.path.join("assets", "font", "THEBOLDFONT.ttf")
-font = pygame.font.Font(THE_BOLD_FONT_FILE, FONT_SIZE)
+# FONT_FILE = os.path.join("assets", "font", "THEBOLDFONT.ttf")
+FONT_FILE = os.path.join("assets", "font", "SourceCodePro-Bold.otf")
+font = pygame.font.Font(FONT_FILE, FONT_SIZE)
 # Font Setup __________________________________________
 
 
@@ -109,18 +112,22 @@ star_images = [pygame.image.load(os.path.join('assets', 'images', 'stars', x)) f
 planet_images = [pygame.image.load(os.path.join('assets', 'images', 'planets', x)) for x in os.listdir(
     os.path.join('assets', 'images', 'planets')) if x != '.DS_Store']
 
-# use if you want to add a new song
-# ______________________________
-# song_pretty_midi_files = {x: pretty_midi.PrettyMIDI(os.path.join('music', x, x+'.mid')) for x in os.listdir('music') if x != '.DS_Store'}
-# midi_pickle_file = open('pretty_midi', 'wb')
-# pickle.dump(song_pretty_midi_files, midi_pickle_file)
-# midi_pickle_file.close()
-# ______________________________
 
 midi_data_file = 'pretty_midi'
-with open(midi_data_file, 'rb') as midi_pickle_file:
-    # load midi data from pickle object created beforehand
-    song_pretty_midi_files = pickle.load(midi_pickle_file)
+if midi_data_file not in os.listdir():
+    print('creating music load file...')
+    # use if you want to add a new song
+    # ______________________________
+    song_pretty_midi_files = {x: pretty_midi.PrettyMIDI(os.path.join(
+        'music', x, x+'.mid')) for x in os.listdir('music') if x != '.DS_Store'}
+    midi_pickle_file = open(midi_data_file, 'wb')
+    pickle.dump(song_pretty_midi_files, midi_pickle_file)
+    midi_pickle_file.close()
+    # ______________________________
+else:
+    with open(midi_data_file, 'rb') as midi_pickle_file:
+        # load midi data from pickle object created beforehand
+        song_pretty_midi_files = pickle.load(midi_pickle_file)
 
 # ______________________________
 
@@ -175,7 +182,7 @@ space_background_file = os.path.join(
     "assets", "images", "space_background.png")
 space_background = pygame.image.load(space_background_file).convert()
 space_background = pygame.transform.scale(space_background, (WIDTH, HEIGHT))
-space_background.set_alpha(100)
+space_background.set_alpha(200)
 
 background_surf = pygame.Surface((WIDTH, HEIGHT))
 background_surf.fill(BACKGROUND_COLOR)
@@ -209,7 +216,7 @@ class Vector:
 
 
 class PlanetarySystem:
-    MIN_RADIUS = 200
+    MIN_RADIUS = 100
     MAX_RADIUS = min(WIDTH, HEIGHT)
 
     def __init__(self, bodies):
@@ -254,7 +261,10 @@ class CelestialBody:
         self.image = image
         self.x_rotation = self.x  # used for rotation matrix implementation
         self.y_rotation = self.y
-
+        self.distance_to_star = self.get_pos_vector().distance(
+            Vector(CENTER[0], CENTER[1]))
+        self.bounding_rect = pygame.Rect(
+            self.x, CENTER[1]-self.distance_to_star, self.distance_to_star*2, self.distance_to_star*2)  # used for drawing orbits
     # add to initial velocity vector
 
     def get_gravitational_velocity_vec(self, object_b):
@@ -311,12 +321,12 @@ class CelestialBody:
     def draw(self):
         global SOLAR_ZOOM_FACTOR
         global solar_system
-        x_solar_center_offset = WIDTH//2 - solar_system.star.x
-        y_solar_center_offset = HEIGHT//2 - solar_system.star.y
         if self.is_planet:
             self.change_planet_on_note()
 
         if self.color != DEFAULT_PLANET_COLOR:  # don't draw planet unless it changes color
+            if ORBIT_PATHS_ON:
+                pygame.draw.ellipse(WIN, self.color, self.bounding_rect, 1)
 
             draw_x = WIDTH//2 - SOLAR_ZOOM_FACTOR*(WIDTH//2-self.x_rotation)
             draw_y = HEIGHT//2 - SOLAR_ZOOM_FACTOR*(HEIGHT//2-self.y_rotation)
@@ -351,10 +361,15 @@ class CelestialBody:
 def write_text(text, location, color=(255, 255, 255)):
     WIN.blit(font.render(text, True, color), location)
 
+
 def find_menu():
-    global curr_star_name
+    global curr_star_name, background_surf
+    background_surf.fill(GREY)
+    background_surf.blit(space_background, (0, 0))
     song_list = list(galaxy.keys())
     highlight_index = song_list.index(curr_star_name)
+    song_durations = {song: datetime.timedelta(
+        seconds=song_pretty_midi_files[song].get_end_time()) for song in song_list}
 
     while True:
         clock.tick(FPS)
@@ -362,27 +377,34 @@ def find_menu():
             if event.type == pygame.QUIT:
                 pygame.quit()
                 exit()
-            
+
             if event.type == pygame.KEYDOWN:
 
-                if event.key == pygame.K_ESCAPE or event.key == pygame.K_RETURN:
+                if event.key == pygame.K_RETURN:
                     initialize_new_song()
+                    background_surf.fill(BACKGROUND_COLOR)
+                    background_surf.blit(space_background, (0, 0))
                     return
 
-                if event.key == pygame.K_UP and highlight_index > 0:
+                if event.key == pygame.K_UP:
                     highlight_index -= 1
 
-                if event.key == pygame.K_DOWN and highlight_index < len(song_list)-1:
+                if event.key == pygame.K_DOWN:
                     highlight_index += 1
 
+                # allows selection to move to top, modular selection
+                highlight_index = highlight_index % len(song_list)
+
                 curr_star_name = song_list[highlight_index]
-        
-        WIN.fill(BLACK)
+
+        WIN.blit(background_surf, (0, 0))
         for index, song in enumerate(song_list):
             if index == highlight_index:
-                write_text(f'{index}: {song}', (0, FONT_SIZE*index), GREEN)
+                write_text(
+                    f'{index}: {song} -+- ({song_durations[song]})', (0, FONT_SIZE*index), GREEN)
             else:
-                write_text(f'{index}: {song}', (0, FONT_SIZE*index))
+                write_text(
+                    f'{index}: {song} -+- ({song_durations[song]})', (0, FONT_SIZE*index))
 
         pygame.display.update()
 
@@ -466,6 +488,12 @@ while running:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             running = False
+
+        if event.type == pygame.KEYDOWN:
+            if view_mode == VIEW_OPTIONS[0]:
+                if event.key == pygame.K_e:
+                    ORBIT_PATHS_ON = not ORBIT_PATHS_ON
+
         if event.type == pygame.MOUSEBUTTONDOWN:
             if view_mode == VIEW_OPTIONS[0]:  # view check
                 if event.button == PYGAME_ZOOM_OUT:
@@ -589,7 +617,12 @@ while running:
             view_mode = VIEW_OPTIONS[0]
             # GALAXY_ZOOM_FACTOR = GALAXY_ZOOM_THRESHOLD
 
-    write_text(f'T={str(datetime.timedelta(seconds=time.time()-start_time))}',
+    time_elapsed = (
+        time.time() - start_time) % solar_system.bodies[1].song_duration
+    if time_elapsed > 0 and time_elapsed < 0.1:
+        play_song(solar_system.bodies[1].song_duration)
+
+    write_text(f'T={str(datetime.timedelta(seconds=(time_elapsed)))}',
                (0, 0))  # update screen counter
     write_text(f'{curr_star_name}', (0, FONT_SIZE), GREY)
 
