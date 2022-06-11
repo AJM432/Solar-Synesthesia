@@ -9,3 +9,12 @@
 - press "e" while in planetary mode to turn on/off orbit paths
 - press "f" while in galaxy mode to see a list of the available songs
   - press the up and down arrow keys to navigate the list of songs and press enter to select the song
+
+## Planetary Mode
+![Planetary Mode](https://user-images.githubusercontent.com/49791407/173205133-c8da5e3c-0d97-471f-84ab-1f9244187c95.png)
+
+## Galaxy Mode
+![Galaxy Mode](https://user-images.githubusercontent.com/49791407/173205142-15c1daaa-812a-49aa-82a8-f0f0eba80a3c.png)
+
+## Find Menu
+![Find Menu](https://user-images.githubusercontent.com/49791407/173205176-8a095248-5ac3-44de-8220-902cc2256148.png)
