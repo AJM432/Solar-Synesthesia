@@ -1,4 +1,5 @@
 # Solar-Synesthesia
+A music visualizer using solar systems and a galaxy of songs.
 
 ## Commands
 
