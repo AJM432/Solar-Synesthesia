@@ -10,11 +10,11 @@
 - press "f" while in galaxy mode to see a list of the available songs
   - press the up and down arrow keys to navigate the list of songs and press enter to select the song
 
+## Important Note
+When the program is run for the first time it will create a data file that will take upwards of 10 seconds to complete.
+
 ## Live Demo
-
-
 https://user-images.githubusercontent.com/49791407/173208552-d4f4154c-20b8-411d-b540-6b94598376f2.mov
-
 
 
 ## Planetary Mode
