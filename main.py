@@ -8,16 +8,18 @@ import pickle
 
 import datetime
 
+pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=4096)
+pygame.init()
+
 # constants
 # ______________________________
 # ______________________________
-# WIDTH = HEIGHT = 800
-# WIDTH, HEIGHT = 1280, 746
-WIDTH, HEIGHT = 2048, 1099
 FPS = 60  # never change FPS, used in velocity calculation as delta-t
 ZOOM_FACTOR = 1
 ZOOM_CHANGE = 0.05
-
+WINDOW_INFO = pygame.display.Info()
+WIDTH, HEIGHT = WINDOW_INFO.current_w, WINDOW_INFO.current_h
+# WIDTH, HEIGHT = 2048, 1099
 CENTER = (WIDTH//2, HEIGHT//2)
 
 WHITE = (255, 255, 255)
@@ -91,8 +93,6 @@ view_mode = VIEW_OPTIONS[0]  # must only be 'star' or 'galaxy'
 #  star must be defined as first element in dict
 # objects are stored as key, value pairs where key=name, value=instance of object class
 # ______________________________
-pygame.mixer.pre_init(frequency=44100, size=-16, channels=2, buffer=4096)
-pygame.init()
 WIN = pygame.display.set_mode((WIDTH, HEIGHT))
 pygame.display.set_caption("Solar Synesthesia")
 clock = pygame.time.Clock()
@@ -182,7 +182,7 @@ space_background_file = os.path.join(
     "assets", "images", "space_background.png")
 space_background = pygame.image.load(space_background_file).convert()
 space_background = pygame.transform.scale(space_background, (WIDTH, HEIGHT))
-space_background.set_alpha(200)
+space_background.set_alpha(100)
 
 background_surf = pygame.Surface((WIDTH, HEIGHT))
 background_surf.fill(BACKGROUND_COLOR)
