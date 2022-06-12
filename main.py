@@ -103,6 +103,8 @@ FONT_FILE = os.path.join("assets", "font", "SourceCodePro-Bold.otf")
 font = pygame.font.Font(FONT_FILE, FONT_SIZE)
 # Font Setup __________________________________________
 
+def write_text(text, location, color=(255, 255, 255)):
+    WIN.blit(font.render(text, True, color), location)
 
 # load assets
 # each time you import a new song you have to update pickle dictionary
@@ -115,7 +117,7 @@ planet_images = [pygame.image.load(os.path.join('assets', 'images', 'planets', x
 
 midi_data_file = 'pretty_midi'
 if midi_data_file not in os.listdir():
-    print('creating music load file...')
+    write_text('creating music load file...', (0, 0))
     # use if you want to add a new song
     # ______________________________
     song_pretty_midi_files = {x: pretty_midi.PrettyMIDI(os.path.join(
@@ -356,10 +358,6 @@ class CelestialBody:
         self.draw()
 
 # classes_____________________________________________
-
-
-def write_text(text, location, color=(255, 255, 255)):
-    WIN.blit(font.render(text, True, color), location)
 
 
 def find_menu():
