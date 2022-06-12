@@ -118,6 +118,7 @@ planet_images = [pygame.image.load(os.path.join('assets', 'images', 'planets', x
 midi_data_file = 'pretty_midi'
 if midi_data_file not in os.listdir():
     write_text('creating music load file...', (0, 0))
+    pygame.display.update()
     # use if you want to add a new song
     # ______________________________
     song_pretty_midi_files = {x: pretty_midi.PrettyMIDI(os.path.join(
